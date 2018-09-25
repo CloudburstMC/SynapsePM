@@ -1,10 +1,10 @@
 <?php
+
 declare(strict_types=1);
 
 namespace synapsepm\event\player;
 
 use synapsepm\Player;
-
 
 class PlayerConnectEvent extends PlayerEvent {
     public static $handlerList = null;

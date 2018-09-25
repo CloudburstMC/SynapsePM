@@ -1,9 +1,12 @@
 <?php
+
 declare(strict_types=1);
 
 namespace synapsepm;
 
 use pocketmine\event\player\PlayerCreationEvent;
+use pocketmine\network\mcpe\NetworkSession;
+use pocketmine\network\mcpe\protocol\DataPacket;
 use pocketmine\network\mcpe\protocol\PacketPool;
 use pocketmine\scheduler\Task;
 use pocketmine\Server;
@@ -11,7 +14,6 @@ use pocketmine\utils\MainLogger;
 use synapsepm\event\synapse\SynapsePluginMessageReceiveEvent;
 use synapsepm\network\protocol\spp\BroadcastPacket;
 use synapsepm\network\protocol\spp\ConnectPacket;
-use synapsepm\network\protocol\spp\DataPacket;
 use synapsepm\network\protocol\spp\DisconnectPacket;
 use synapsepm\network\protocol\spp\HeartbeatPacket;
 use synapsepm\network\protocol\spp\InformationPacket;
@@ -22,7 +24,6 @@ use synapsepm\network\protocol\spp\RedirectPacket;
 use synapsepm\network\protocol\spp\SynapseInfo;
 use synapsepm\network\SynapseInterface;
 use synapsepm\network\SynLibInterface;
-
 
 class Synapse {
     /** @var SynapsePM */
@@ -64,7 +65,7 @@ class Synapse {
     private $clientData = [];
     private $connectionTime = PHP_INT_MAX;
 
-    public function __construct(SynapsePM $owner, array $config) {
+    public function __construct(SynapsePM $owner, array $config){
         $this->owner = $owner;
         $this->server = $owner->getServer();
         $this->task = new class($this) extends Task {
@@ -74,11 +75,11 @@ class Synapse {
              */
             private $synapse;
 
-            public function __construct(Synapse $synapse) {
+            public function __construct(Synapse $synapse){
                 $this->synapse = $synapse;
             }
 
-            public function onRun(int $currentTick) {
+            public function onRun(int $currentTick){
                 $this->synapse->tick();
             }
 
@@ -102,25 +103,25 @@ class Synapse {
 
         $this->owner->getScheduler()->scheduleRepeatingTask($this->task, 1);
 
-        if ($config['autoConnect'] ?? false) {
+        if($config['autoConnect'] ?? false){
             $this->connect();
         }
     }
 
-    public function getClientData() {
+    public function getClientData(){
         return $this->clientData;
     }
 
-    public function getServer() {
+    public function getServer(){
         return $this->server;
     }
 
-    public function getInterface() {
+    public function getInterface(){
         return $this->interface;
     }
 
-    public function shutdown() {
-        if ($this->verified) {
+    public function shutdown(){
+        if($this->verified){
             $pk = new DisconnectPacket();
             $pk->type = DisconnectPacket::TYPE_GENERIC;
             $pk->message = 'Server closed';
@@ -129,15 +130,15 @@ class Synapse {
         }
     }
 
-    public function getDescription(): string {
+    public function getDescription(): string{
         return $this->description;
     }
 
-    public function sendDataPacket(DataPacket $pk) {
+    public function sendDataPacket(DataPacket $pk){
         $this->interface->putPacket($pk);
     }
 
-    public function connect() {
+    public function connect(){
         $this->verified = false;
         $pk = new ConnectPacket();
         $pk->password = $this->password;
@@ -151,9 +152,10 @@ class Synapse {
         $this->connectionTime = microtime(true);
     }
 
-    public function tick() {
+    public function tick(){
         $this->interface->process();
-        if ((($time = microtime(true)) - $this->lastUpdate) >= 5) {
+        if((($time = microtime(true)) - $this->lastUpdate) >= 5){
+            $this->getLogger()->info("HB");
             $this->lastUpdate = $time;
             $pk = new HeartbeatPacket();
             $pk->tps = $this->server->getTicksPerSecondAverage();
@@ -161,48 +163,48 @@ class Synapse {
             $pk->upTime = (int)(microtime(true) - \pocketmine\START_TIME);
             $this->sendDataPacket($pk);
         }
-        if (((($time = microtime(true)) - $this->lastUpdate) >= 30) and $this->interface->isConnected()) {
+        if(((($time = microtime(true)) - $this->lastUpdate) >= 30) and $this->interface->isConnected()){
             $this->interface->reconnect();
         }
-        if (microtime(true) - $this->connectionTime >= 15 and !$this->verified) {
+        if(microtime(true) - $this->connectionTime >= 15 and !$this->verified){
             $this->interface->reconnect();
         }
     }
 
-    public function getServerIp(): string {
+    public function getServerIp(): string{
         return $this->serverIp;
     }
 
-    public function getPort(): int {
+    public function getPort(): int{
         return $this->port;
     }
 
-    public function isMainServer(): bool {
+    public function isMainServer(): bool{
         return $this->isMainServer;
     }
 
-    public function broadcastPacket(array $players, DataPacket $packet, $direct = false) {
+    public function broadcastPacket(array $players, DataPacket $packet, $direct = false){
         $packet->encode();
         $pk = new BroadcastPacket();
         $pk->direct = $direct;
         $pk->payload = $packet->getBuffer();
-        foreach ($players as $player) {
+        foreach($players as $player){
             $pk->entries[] = $player->getUniqueId();
         }
         $this->sendDataPacket($pk);
     }
 
-    public function getLogger() {
+    public function getLogger(){
         return $this->logger;
     }
 
-    public function getHash(): string {
-        return $this->serverIp . ':' . $this->port;
+    public function getHash(): string{
+        return $this->serverIp.':'.$this->port;
     }
 
-    public function getHashByDescription(string $desc): ?string {
-        foreach ($this->clientData as $hash => $data) {
-            if ($data["description"] === $desc) {
+    public function getHashByDescription(string $desc): ?string{
+        foreach($this->clientData as $hash => $data){
+            if($data["description"] === $desc){
                 return $hash;
             }
         }
@@ -210,12 +212,12 @@ class Synapse {
         return null;
     }
 
-    public function getPacket($buffer) {
+    public function getPacket($buffer){
         $pid = ord($buffer{0});
-        if ($pid === 0xFF) {
+        if($pid === 0xFF){
             $pid = 0xFE;
         }
-        if (($data = PacketPool::getPacketById($pid)) === null) {
+        if(($data = PacketPool::getPacketById($pid)) === null){
             return null;
         }
         $data->setBuffer($buffer, 1);
@@ -226,20 +228,20 @@ class Synapse {
      * @internal
      * @param Player $player
      */
-    public function removePlayer(Player $player) {
-        if (isset($this->players[$uuid = $player->getUniqueId()->toBinary()])) {
+    public function removePlayer(Player $player){
+        if(isset($this->players[$uuid = $player->getUniqueId()->toBinary()])){
             unset($this->players[$uuid]);
         }
     }
 
-    public function handleDataPacket(DataPacket $pk) {
-        switch ($pk::NETWORK_ID) {
+    public function handleDataPacket(DataPacket $pk){
+        switch($pk::NETWORK_ID){
             case SynapseInfo::DISCONNECT_PACKET:
                 /** @var DisconnectPacket $pk */
                 $this->verified = false;
-                switch ($pk->type) {
+                switch($pk->type){
                     case DisconnectPacket::TYPE_GENERIC:
-                        $this->getLogger()->notice('Synapse Client has disconnected due to ' . $pk->message);
+                        $this->getLogger()->notice('Synapse Client has disconnected due to '.$pk->message);
                         $this->interface->reconnect();
                         break;
                     case DisconnectPacket::TYPE_WRONG_PROTOCOL:
@@ -249,13 +251,13 @@ class Synapse {
                 break;
             case SynapseInfo::INFORMATION_PACKET:
                 /** @var InformationPacket $pk */
-                switch ($pk->type) {
+                switch($pk->type){
                     case InformationPacket::TYPE_LOGIN:
-                        if ($pk->message === InformationPacket::INFO_LOGIN_SUCCESS) {
-                            $this->logger->info('Login success to ' . $this->serverIp . ':' . $this->port);
+                        if($pk->message === InformationPacket::INFO_LOGIN_SUCCESS){
+                            $this->logger->info('Login success to '.$this->serverIp.':'.$this->port);
                             $this->verified = true;
-                        } elseif ($pk->message === InformationPacket::INFO_LOGIN_FAILED) {
-                            $this->logger->info('Login failed to ' . $this->serverIp . ':' . $this->port);
+                        } elseif($pk->message === InformationPacket::INFO_LOGIN_FAILED){
+                            $this->logger->info('Login failed to '.$this->serverIp.':'.$this->port);
                         }
                         break;
                     case InformationPacket::TYPE_CLIENT_DATA:
@@ -266,12 +268,13 @@ class Synapse {
                 break;
             case SynapseInfo::PLAYER_LOGIN_PACKET:
                 /** @var PlayerLoginPacket $pk */
-                $ev = new PlayerCreationEvent($this->synLibInterface, Player::class, Player::class, $pk->address, $pk->port);
+                $networksession = new NetworkSession($this->getServer(), $this->synLibInterface, $pk->address, $pk->port);
+                $ev = new PlayerCreationEvent($networksession);
                 $this->server->getPluginManager()->callEvent($ev);
                 $class = $ev->getPlayerClass();
 
                 /** @var Player $player */
-                $player = new $class($this->synLibInterface, $ev->getAddress(), $ev->getPort());
+                $player = new $class($this->synLibInterface, $networksession);
                 $player->setUniqueId($pk->uuid);
                 $this->server->addPlayer($player);
                 $this->players[$pk->uuid->toBinary()] = $player;
@@ -279,16 +282,16 @@ class Synapse {
                 break;
             case SynapseInfo::REDIRECT_PACKET:
                 /** @var RedirectPacket $pk */
-                if (isset($this->players[$uuid = $pk->uuid->toBinary()])) {
+                if(isset($this->players[$uuid = $pk->uuid->toBinary()])){
                     $innerPacket = $this->getPacket($pk->mcpeBuffer);
-                    if ($innerPacket !== null) {
+                    if($innerPacket !== null){
                         $this->players[$uuid]->handleDataPacket($innerPacket);
                     }
                 }
                 break;
             case SynapseInfo::PLAYER_LOGOUT_PACKET:
                 /** @var PlayerLogoutPacket $pk */
-                if (isset($this->players[$uuid = $pk->uuid->toBinary()])) {
+                if(isset($this->players[$uuid = $pk->uuid->toBinary()])){
                     $this->players[$uuid]->close('', $pk->reason, false);
                     $this->removePlayer($this->players[$uuid]);
                 }
@@ -300,7 +303,7 @@ class Synapse {
         }
     }
 
-    public function sendPluginMessage(string $channel, string $message) {
+    public function sendPluginMessage(string $channel, string $message){
         $pk = new PluginMessagePacket();
         $pk->channel = $channel;
         $pk->data = $message;

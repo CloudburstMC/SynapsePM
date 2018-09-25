@@ -1,9 +1,11 @@
 <?php
+
 declare(strict_types=1);
 
 namespace synapsepm;
 
 use pocketmine\level\Level;
+use pocketmine\network\mcpe\NetworkSession;
 use pocketmine\network\mcpe\protocol\DataPacket;
 use pocketmine\network\mcpe\protocol\EntityEventPacket;
 use pocketmine\network\mcpe\protocol\FullChunkDataPacket;
@@ -20,7 +22,6 @@ use synapsepm\network\protocol\spp\TransferPacket;
 use synapsepm\network\SynLibInterface;
 use synapsepm\utils\DataPacketEidReplacer;
 
-
 class Player extends PMPlayer {
     /** @var Synapse */
     private $synapse;
@@ -29,17 +30,21 @@ class Player extends PMPlayer {
     /** @var UUID */
     private $overrideUUID;
 
-    public function __construct(SynLibInterface $interface, $ip, $port) {
-        parent::__construct($interface, $ip, $port);
+    /** @var SynLibInterface $interface */
+    private $session;
+
+    public function __construct(SynLibInterface $interface, NetworkSession $session){
+        parent::__construct($this->getServer(), $session);
         $this->synapse = $interface->getSynapse();
+        $this->session = $session;
     }
 
-    public function handleLoginPacket(PlayerLoginPacket $packet) {
+    public function handleLoginPacket(PlayerLoginPacket $packet){
         $this->isFirstTimeLogin = $packet->isFirstTime;
         $this->server->getPluginManager()->callEvent($ev = new PlayerConnectEvent($this, $this->isFirstTimeLogin));
         $loginPacket = $this->synapse->getPacket($packet->cachedLoginPacket);
 
-        if ($loginPacket === null) {
+        if($loginPacket === null){
             $this->close($this->getLeaveMessage(), 'Invalid login packet');
             return;
         }
@@ -54,38 +59,38 @@ class Player extends PMPlayer {
      *
      * Unload all old chunks(send empty)
      */
-    public function forceSendEmptyChunks() {
-        foreach ($this->usedChunks as $index => $true) {
+    public function forceSendEmptyChunks(){
+        foreach($this->usedChunks as $index => $true){
             Level::getXZ($index, $chunkX, $chunkZ);
             $pk = new FullChunkDataPacket();
             $pk->chunkX = $chunkX;
             $pk->chunkZ = $chunkZ;
             $pk->data = '';
-            $this->dataPacket($pk);
+            $this->sendDataPacket($pk);
         }
     }
 
-    public function handleDataPacket(DataPacket $packet) {
+    public function handleDataPacket(DataPacket $packet){
         $this->lastPacketTime = microtime(true);
 
-        if ($packet->pid() == ProtocolInfo::MOVE_PLAYER_PACKET && $this->id === null) {
-//            $pk = new MovePlayerPacket();
-//            $pk->entityRuntimeId = PHP_INT_MAX;
-//            $pk->position = $this->getOffsetPosition($this);
-//            $pk->pitch = $this->pitch;
-//            $pk->headYaw = $this->yaw;
-//            $pk->yaw = $this->yaw;
-//            $pk->mode = MovePlayerPacket::MODE_RESET;
-//
-//            $this->interface->putPacket($this, $pk, false, false);
+        if($packet->pid() == ProtocolInfo::MOVE_PLAYER_PACKET && $this->id === null){
+            //            $pk = new MovePlayerPacket();
+            //            $pk->entityRuntimeId = PHP_INT_MAX;
+            //            $pk->position = $this->getOffsetPosition($this);
+            //            $pk->pitch = $this->pitch;
+            //            $pk->headYaw = $this->yaw;
+            //            $pk->yaw = $this->yaw;
+            //            $pk->mode = MovePlayerPacket::MODE_RESET;
+            //
+            //            $this->interface->putPacket($this, $pk, false, false);
             return;
         }
 
-        parent::handleDataPacket($packet);
+        parent::sendDataPacket($packet);
     }
 
-    public function onUpdate(int $currentTick): bool {
-        if ((microtime(true) - $this->lastPacketTime) >= 5 * 60) {
+    public function onUpdate(int $currentTick): bool{
+        if((microtime(true) - $this->lastPacketTime) >= 5 * 60){
             $this->close('', 'timeout');
 
             return false;
@@ -93,72 +98,72 @@ class Player extends PMPlayer {
         return parent::onUpdate($currentTick);
     }
 
-    public function getUniqueId(): UUID {
+    public function getUniqueId(): UUID{
         return $this->overrideUUID ?? parent::getUniqueId();
     }
 
-    public function setUniqueId(UUID $uuid) {
+    public function setUniqueId(UUID $uuid){
         $this->uuid = $uuid;
         $this->overrideUUID = $uuid;
     }
 
-    protected function processPacket(DataPacket $packet): bool {
-        if (!$this->isFirstTimeLogin) {
-            if ($packet instanceof PlayStatusPacket && $packet->status === PlayStatusPacket::PLAYER_SPAWN) {
+    protected function processPacket(DataPacket $packet): bool{
+        if(!$this->isFirstTimeLogin){
+            if($packet instanceof PlayStatusPacket && $packet->status === PlayStatusPacket::PLAYER_SPAWN){
                 return true;
             }
 
-            if ($packet instanceof ResourcePacksInfoPacket) {
+            if($packet instanceof ResourcePacksInfoPacket){
                 $this->completeLoginSequence();
                 return true;
             }
 
-            if ($packet instanceof StartGamePacket) {
+            if($packet instanceof StartGamePacket){
                 return true;
             }
-        } else {
-            if ($packet instanceof StartGamePacket) {
+        } else{
+            if($packet instanceof StartGamePacket){
                 $packet->entityUniqueId = PHP_INT_MAX;
                 $packet->entityRuntimeId = PHP_INT_MAX;
             }
         }
 
-//        $this->server->getPluginManager()->callEvent($ev = new DataPacketSendEvent($this, $packet));
-//        return $ev->isCancelled();
+        //$this->server->getPluginManager()->callEvent($ev = new DataPacketSendEvent($this, $packet));
+        //return $ev->isCancelled();
         return false;
     }
 
-    public function sendDataPacket(DataPacket $packet, bool $needACK = \false, bool $immediate = \false) {
-        if (!$this->processPacket($packet)) {
-            if ($this->id != null) {
+    public function sendDataPacket(DataPacket $packet, bool $needACK = \false, bool $immediate = \false): bool{
+        if(!$this->processPacket($packet)){
+            if($this->id != null){
                 $packet = DataPacketEidReplacer::replace($packet, $this->getId(), PHP_INT_MAX);
             }
 
-            return parent::sendDataPacket($packet, $needACK, $immediate);
+            return parent::sendDataPacket($packet, $immediate);
         }
 
         return false;
     }
 
-    public function broadcastEntityEvent(int $eventId, ?int $eventData = \null, ?array $players = \null): void {
+    public function broadcastEntityEvent(int $eventId, ?int $eventData = \null, ?array $players = \null): void{
         $pk = new EntityEventPacket();
         $pk->entityRuntimeId = $this->id;
         $pk->event = $eventId;
         $pk->data = $eventData ?? 0;
 
-        if ($players === \null) {
+        if($players === null){
             $players = $this->getViewers();
 
-            if ($this->spawned) {
-                $this->dataPacket($pk);
+            if($this->spawned){
+                $this->sendDataPacket($pk);
             }
         }
 
         $this->server->broadcastPacket($players, $pk);
     }
 
-    protected function completeLoginSequence() {
-        $r = parent::completeLoginSequence();
+    protected function completeLoginSequence(){
+        $r = parent::_actuallyConstruct();
 
         $this->sendGamemode();
         $this->setViewDistance($this->server->getViewDistance()); //TODO: save view distance in nemisys
@@ -166,44 +171,45 @@ class Player extends PMPlayer {
         return $r;
     }
 
-    public function isFirstLogin() {
+    public function isFirstLogin(){
         return $this->isFirstTimeLogin;
     }
 
-    public function getSynapse(): Synapse {
+    public function getSynapse(): Synapse{
         return $this->synapse;
     }
 
-    public function synapseTransferByDesc(string $desc): bool {
+    public function synapseTransferByDesc(string $desc): bool{
         return $this->synapseTransfer($this->synapse->getHashByDescription($desc) ?? "");
     }
 
-    public function synapseTransfer(string $hash): bool {
-        if ($this->synapse->getHash() === $hash) {
+    public function synapseTransfer(string $hash): bool{
+        if($this->synapse->getHash() === $hash){
             return false;
         }
 
         $clients = $this->synapse->getClientData();
 
-        if (!isset($clients[$hash])) {
+        if(!isset($clients[$hash])){
             return false;
         }
 
-        foreach ($this->getEffects() as $effect) {
+        foreach($this->getEffects() as $effect){
             $pk = new MobEffectPacket();
             $pk->entityRuntimeId = $this->getId();
             $pk->eventId = MobEffectPacket::EVENT_REMOVE;
             $pk->effectId = $effect->getId();
-            $this->dataPacket($pk);
+            $this->sendDataPacket($pk);
         }
 
-        foreach ($this->getAttributeMap()->getAll() as $attribute) {
+        foreach($this->getAttributeMap()->getAll() as $attribute){
             $attribute->resetToDefault();
         }
 
         $this->sendAttributes(true);
         $this->setSprinting(false);
         $this->setSneaking(false);
+        $this->setSwimming(false);
 
         $this->forceSendEmptyChunks();
 

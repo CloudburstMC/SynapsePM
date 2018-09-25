@@ -1,8 +1,8 @@
 <?php
+
 declare(strict_types=1);
 
 namespace synapsepm\network\synlib;
-
 
 class SynapseSocket {
     private $socket;

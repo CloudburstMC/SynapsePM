@@ -1,10 +1,10 @@
 <?php
+
 declare(strict_types=1);
 
 namespace synapsepm\event\synapse;
 
 use synapsepm\Synapse;
-
 
 class SynapsePluginMessageReceiveEvent extends SynapseEvent {
     public static $handlerList = null;
@@ -26,9 +26,13 @@ class SynapsePluginMessageReceiveEvent extends SynapseEvent {
      */
     public function __construct(Synapse $synapse, string $channel, string $message) {
         $this->synapse = $synapse;
+        $this->channel = $channel;
         $this->message = $message;
     }
 
+    /**
+     * @return string
+     */
     public function getMessage(): string {
         return $this->message;
     }

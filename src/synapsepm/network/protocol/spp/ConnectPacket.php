@@ -1,7 +1,11 @@
 <?php
+
 declare(strict_types=1);
 
 namespace synapsepm\network\protocol\spp;
+
+use pocketmine\network\mcpe\handler\SessionHandler;
+use pocketmine\network\mcpe\protocol\DataPacket;
 
 class ConnectPacket extends DataPacket {
     const NETWORK_ID = SynapseInfo::CONNECT_PACKET;
@@ -14,7 +18,7 @@ class ConnectPacket extends DataPacket {
     public $description;
     public $password;
 
-    public function encode() {
+    public function encode() : void{
         $this->reset();
         $this->putInt($this->protocol);
         $this->putInt($this->maxPlayers);
@@ -25,7 +29,7 @@ class ConnectPacket extends DataPacket {
         $this->putString($this->password);;
     }
 
-    public function decode() {
+    public function decode() : void{
         $this->protocol = $this->getInt();
         $this->maxPlayers = $this->getInt();
         $this->isMainServer = $this->getBool();
@@ -33,5 +37,9 @@ class ConnectPacket extends DataPacket {
         $this->transferOnShutdown = $this->getBool();
         $this->description = $this->getString();
         $this->password = $this->getString();
+    }
+
+    public function handle(SessionHandler $handler): bool{
+        return true;
     }
 }

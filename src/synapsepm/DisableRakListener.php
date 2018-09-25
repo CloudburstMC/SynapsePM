@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace synapsepm;
@@ -6,7 +7,6 @@ namespace synapsepm;
 use pocketmine\event\Listener;
 use pocketmine\event\server\NetworkInterfaceRegisterEvent;
 use pocketmine\network\mcpe\RakLibInterface;
-
 
 class DisableRakListener implements Listener {
     /**

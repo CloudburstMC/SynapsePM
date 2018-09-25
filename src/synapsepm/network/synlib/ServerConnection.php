@@ -1,11 +1,11 @@
 <?php
+
 declare(strict_types=1);
 
 namespace synapsepm\network\synlib;
 
 use pocketmine\utils\Binary;
 use synapsepm\network\protocol\spp\SynapseInfo;
-
 
 class ServerConnection {
     private $receiveBuffer = '';

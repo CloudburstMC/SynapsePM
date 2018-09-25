@@ -3,9 +3,9 @@ declare(strict_types=1);
 
 namespace synapsepm\network;
 
+use pocketmine\network\mcpe\protocol\DataPacket;
 use synapsepm\network\protocol\spp\BroadcastPacket;
 use synapsepm\network\protocol\spp\ConnectPacket;
-use synapsepm\network\protocol\spp\DataPacket;
 use synapsepm\network\protocol\spp\DisconnectPacket;
 use synapsepm\network\protocol\spp\HeartbeatPacket;
 use synapsepm\network\protocol\spp\InformationPacket;
@@ -33,7 +33,11 @@ class SynapseInterface {
         $this->ip = $ip;
         $this->port = $port;
         $this->registerPackets();
-        $this->client = new SynapseClient($server->getLogger(), $server->getServer()->getLoader(), $port, $ip);
+        try {
+            $this->client = new SynapseClient($server->getLogger(), $server->getServer()->getLoader(), $port, $ip);
+        } catch(\Exception $e){
+            $this->getSynapse()->getLogger()->info($e->getMessage());
+        }
     }
 
     public function getSynapse() {

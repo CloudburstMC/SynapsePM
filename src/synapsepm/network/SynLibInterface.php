@@ -1,16 +1,15 @@
 <?php
+
 declare(strict_types=1);
 
 namespace synapsepm\network;
 
-use pocketmine\network\mcpe\protocol\DataPacket;
-use pocketmine\network\SourceInterface;
-use pocketmine\Player;
+use pocketmine\network\mcpe\NetworkSession;
+use pocketmine\network\NetworkInterface;
 use synapsepm\network\protocol\spp\RedirectPacket;
 use synapsepm\Synapse;
 
-
-class SynLibInterface implements SourceInterface {
+class SynLibInterface implements NetworkInterface {
     private $synapseInterface;
     private $synapse;
 
@@ -19,41 +18,42 @@ class SynLibInterface implements SourceInterface {
         $this->synapseInterface = $interface;
     }
 
-    public function start() {
-
+    public function start() : void{
     }
 
     public function getSynapse(): Synapse {
         return $this->synapse;
     }
 
-    public function emergencyShutdown() {
+    public function emergencyShutdown() : void{
     }
 
-    public function setName(string $name) {
+    public function setName(string $name) : void{
     }
 
     public function process(): void {
-
     }
 
-    public function close(Player $player, string $reason = 'unknown reason') {
+    public function close(NetworkSession $session, string $reason = "unknown reason") : void{
     }
 
-    public function putPacket(Player $player, DataPacket $packet, bool $needACK = false, bool $immediate = true) {
+    public function putPacket(NetworkSession $session, string $payload, bool $immediate = true) : void{
+        $player = $session->getPlayer();
         if (!$player->isClosed()) {
             $pk = new RedirectPacket();
             $pk->uuid = $player->getUniqueId();
             $pk->direct = $immediate;
-            if (!$packet->isEncoded) {
-                $packet->encode();
+            if (!$pk->isEncoded) {
+                $pk->encode();
             }
-            $pk->mcpeBuffer = $packet->buffer;
+            $pk->mcpeBuffer = $pk->buffer;
             $this->synapseInterface->putPacket($pk);
         }
-        return null;
     }
 
-    public function shutdown() {
+    public function shutdown() : void{
+    }
+
+    public function tick(): void{
     }
 }
