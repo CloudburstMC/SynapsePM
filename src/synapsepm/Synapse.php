@@ -155,7 +155,6 @@ class Synapse {
     public function tick(){
         $this->interface->process();
         if((($time = microtime(true)) - $this->lastUpdate) >= 5){
-            $this->getLogger()->info("HB");
             $this->lastUpdate = $time;
             $pk = new HeartbeatPacket();
             $pk->tps = $this->server->getTicksPerSecondAverage();
