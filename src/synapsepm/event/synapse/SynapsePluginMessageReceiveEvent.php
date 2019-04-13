@@ -26,6 +26,7 @@ class SynapsePluginMessageReceiveEvent extends SynapseEvent {
      */
     public function __construct(Synapse $synapse, string $channel, string $message) {
         $this->synapse = $synapse;
+        $this->channel = $channel;
         $this->message = $message;
     }
 
