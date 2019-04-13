@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace synapsepm\network;
 
+use SplFixedArray;
 use synapsepm\network\protocol\spp\BroadcastPacket;
 use synapsepm\network\protocol\spp\ConnectPacket;
 use synapsepm\network\protocol\spp\DataPacket;
@@ -11,6 +12,7 @@ use synapsepm\network\protocol\spp\HeartbeatPacket;
 use synapsepm\network\protocol\spp\InformationPacket;
 use synapsepm\network\protocol\spp\PlayerLoginPacket;
 use synapsepm\network\protocol\spp\PlayerLogoutPacket;
+use synapsepm\network\protocol\spp\PluginMessagePacket;
 use synapsepm\network\protocol\spp\RedirectPacket;
 use synapsepm\network\protocol\spp\SynapseInfo;
 use synapsepm\network\protocol\spp\TransferPacket;
@@ -103,7 +105,7 @@ class SynapseInterface {
     }
 
     private function registerPackets() {
-        $this->packetPool = new \SplFixedArray(256);
+        $this->packetPool = new SplFixedArray(256);
 
         $this->registerPacket(SynapseInfo::HEARTBEAT_PACKET, HeartbeatPacket::class);
         $this->registerPacket(SynapseInfo::CONNECT_PACKET, ConnectPacket::class);
@@ -114,5 +116,6 @@ class SynapseInterface {
         $this->registerPacket(SynapseInfo::INFORMATION_PACKET, InformationPacket::class);
         $this->registerPacket(SynapseInfo::TRANSFER_PACKET, TransferPacket::class);
         $this->registerPacket(SynapseInfo::BROADCAST_PACKET, BroadcastPacket::class);
+        $this->registerPacket(SynapseInfo::PLUGIN_MESSAGE_PACKET, PluginMessagePacket::class);
     }
 }

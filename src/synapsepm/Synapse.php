@@ -8,6 +8,7 @@ use pocketmine\network\mcpe\protocol\PacketPool;
 use pocketmine\scheduler\Task;
 use pocketmine\Server;
 use pocketmine\utils\MainLogger;
+use ReflectionException;
 use synapsepm\event\synapse\SynapsePluginMessageReceiveEvent;
 use synapsepm\network\protocol\spp\BroadcastPacket;
 use synapsepm\network\protocol\spp\ConnectPacket;
@@ -295,7 +296,11 @@ class Synapse {
                 break;
             case SynapseInfo::PLUGIN_MESSAGE_PACKET:
                 /** @var PluginMessagePacket $pk */
-                $this->server->getPluginManager()->callEvent(new SynapsePluginMessageReceiveEvent($this, $pk->channel, $pk->data));
+                $event = new SynapsePluginMessageReceiveEvent($this, $pk->channel, $pk->data);
+                try {
+                    $event->call();
+                } catch(ReflectionException $e) {
+                }
                 break;
         }
     }
