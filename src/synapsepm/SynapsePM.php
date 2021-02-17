@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace synapsepm;
 
-use pocketmine\network\mcpe\protocol\types\RuntimeBlockMapping;
+use pocketmine\network\mcpe\convert\RuntimeBlockMapping;
 use pocketmine\plugin\PluginBase;
 use synapsepm\command\TransferCommand;
 use synapsepm\utils\Utils;

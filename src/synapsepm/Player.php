@@ -222,7 +222,7 @@ class Player extends PMPlayer {
     }
 
     protected function completeLoginSequence() {
-        $r = parent::completeLoginSequence();
+        parent::completeLoginSequence();
 
         $this->sendGamemode();
         $this->setViewDistance($this->server->getViewDistance()); //TODO: save view distance in nemisys
@@ -230,7 +230,6 @@ class Player extends PMPlayer {
         if (!$this->isFirstTimeLogin) {
             $this->doFirstSpawn();
         }
-        return $r;
     }
 
     public function isFirstLogin() {

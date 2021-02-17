@@ -6,7 +6,7 @@ namespace synapsepm\utils;
 use pocketmine\nbt\LittleEndianNBTStream;
 use pocketmine\nbt\NBT;
 use pocketmine\nbt\tag\ListTag;
-use pocketmine\network\mcpe\protocol\types\RuntimeBlockMapping;
+use pocketmine\network\mcpe\convert\RuntimeBlockMapping;
 use pocketmine\utils\MainLogger;
 
 class Utils {
